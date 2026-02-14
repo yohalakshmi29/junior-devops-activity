@@ -1,0 +1,46 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Python Setup
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Python Dependencies
+        run: |
+          cd python-service
+          pip install -r requirements.txt
+
+      # Node Setup
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Node Dependencies
+        run: |
+          cd node-service
+          npm install
+
+      # Build Docker Images
+      - name: Build Python Docker Image
+        run: docker build -t python-service ./python-service
+
+      - name: Build Node Docker Image
+        run: docker build -t node-service ./node-service
