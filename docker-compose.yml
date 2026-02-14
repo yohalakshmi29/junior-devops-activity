@@ -1,0 +1,22 @@
+services:
+  python-service:
+    build: ./python-service
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+
+  node-service:
+    build: ./node-service
+    ports:
+      - "3000:3000"
+    environment:
+      - PYTHON_SERVICE_URL=http://python-service:5000
+    depends_on:
+      - python-service
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
