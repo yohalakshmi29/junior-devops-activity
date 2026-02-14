@@ -1,44 +1,52 @@
-name: CI Pipeline
+name: Full CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
   pull_request:
+    branches:
+      - main
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # ----------------------------
       # Checkout repository
+      # ----------------------------
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Python setup
+      # ----------------------------
+      # Python setup & lint
+      # ----------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Python Dependencies
+      - name: Install Python dependencies
         run: |
           cd python-service
           pip install -r requirements.txt
           pip install flake8
 
-      - name: Lint Python Code
+      - name: Lint Python code
         run: |
           cd python-service
           flake8 .
 
-      # Node setup
+      # ----------------------------
+      # Node setup & lint
+      # ----------------------------
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Install Node Dependencies
+      - name: Install Node dependencies
         run: |
           cd node-service
           npm install
@@ -46,19 +54,45 @@ jobs:
       - name: Install ESLint
         run: |
           cd node-service
-          npm install eslint
+          npm install eslint --save-dev
 
-      - name: Lint Node Code
+      - name: Lint Node code
         run: |
           cd node-service
           npx eslint .
 
-      # Docker Compose
-      - name: Build and Start Services
+      # ----------------------------
+      # Docker build & push
+      # ----------------------------
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Python Docker Image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/python-service:${{ github.sha }} ./python-service
+
+      - name: Build Node Docker Image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/node-service:${{ github.sha }} ./node-service
+
+      - name: Push Python Docker Image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/python-service:${{ github.sha }}
+
+      - name: Push Node Docker Image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/node-service:${{ github.sha }}
+
+      # ----------------------------
+      # Docker Compose & health check
+      # ----------------------------
+      - name: Start services using Docker Compose
         run: docker compose up -d --build
 
-      - name: Wait for Services
+      - name: Wait for services to start
         run: sleep 15
 
-      - name: Health Check Node Service
+      - name: Health check Python service
+        run: curl http://localhost:5000
+
+      - name: Health check Node service
         run: curl http://localhost:3000
