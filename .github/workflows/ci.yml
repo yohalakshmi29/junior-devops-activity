@@ -5,18 +5,21 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      # ----------------------------
+      # Checkout Repository
+      # ----------------------------
+      - name: Checkout code
         uses: actions/checkout@v4
 
+      # ----------------------------
       # Python Setup
+      # ----------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -26,8 +29,16 @@ jobs:
         run: |
           cd python-service
           pip install -r requirements.txt
+          pip install flake8
 
+      - name: Lint Python Code
+        run: |
+          cd python-service
+          flake8 .
+
+      # ----------------------------
       # Node Setup
+      # ----------------------------
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -38,9 +49,25 @@ jobs:
           cd node-service
           npm install
 
-      # Build Docker Images
-      - name: Build Python Docker Image
-        run: docker build -t python-service ./python-service
+      - name: Install ESLint
+        run: |
+          cd node-service
+          npm install eslint
 
-      - name: Build Node Docker Image
-        run: docker build -t node-service ./node-service
+      - name: Lint Node Code
+        run: |
+          cd node-service
+          npx eslint .
+
+      # ----------------------------
+      # Docker Compose
+      # ----------------------------
+      - name: Build and Start Services
+        run: docker compose up -d --build
+
+      - name: Wait for Services
+        run: sleep 15
+
+      - name: Health Check Node Service
+        run: curl http://localhost:3000
+
