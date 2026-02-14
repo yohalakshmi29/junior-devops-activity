@@ -1,43 +1,5 @@
-name: CI/CD Pipeline
+- name: Build Node.js Docker image
+  run: docker build -t my-node-service:${{ env.IMAGE_TAG }} ./node-service
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  node-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - name: Install Node.js dependencies
-        run: |
-          cd node-service
-          npm install
-      - name: Run ESLint
-        run: |
-          cd node-service
-          npx eslint .
-
-  python-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: Install Python dependencies
-        run: |
-          cd python-service
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-      - name: Run Flake8
-        run: |
-          cd python-service
-          python -m flake8 .
+- name: Build Python Docker image
+  run: docker build -t my-python-service:${{ env.IMAGE_TAG }} ./python-service
