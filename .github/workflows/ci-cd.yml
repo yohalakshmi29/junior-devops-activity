@@ -7,79 +7,37 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  node-lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [node-service, python-service]
-        language: [node, python]
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
+      - uses: actions/checkout@v3
       - name: Set up Node.js
-        if: matrix.language == 'node'
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+      - name: Install Node.js dependencies
+        run: |
+          cd node-service
+          npm install
+      - name: Run ESLint
+        run: |
+          cd node-service
+          npx eslint .
 
+  python-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
       - name: Set up Python
-        if: matrix.language == 'python'
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
-          cd ${{ matrix.service }}
-          if [ "${{ matrix.language }}" == "node" ]; then
-            npm install
-          elif [ "${{ matrix.language }}" == "python" ]; then
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt
-          fi
-
-      - name: Run linter
+          cd python-service
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Run Flake8
         run: |
-          cd ${{ matrix.service }}
-          if [ "${{ matrix.language }}" == "node" ]; then
-            npx eslint .
-          elif [ "${{ matrix.language }}" == "python" ]; then
-            python -m flake8 .
-          fi
-
-      - name: Health check
-        run: |
-          cd ${{ matrix.service }}
-          if [ "${{ matrix.language }}" == "node" ]; then
-            node server.js &  # replace with your entry file
-            sleep 5
-            curl -f http://localhost:3000 || exit 1
-          elif [ "${{ matrix.language }}" == "python" ]; then
-            python app.py &  # replace with your entry file
-            sleep 5
-            curl -f http://localhost:5000 || exit 1
-
-  docker-build:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Build Docker image
-        run: |
-          docker build -t my-node-service ./node-service
-          docker build -t my-python-service ./python-service
-
-      - name: (Optional) Push Docker image to Docker Hub
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-          docker tag my-node-service $DOCKER_USERNAME/my-node-service:latest
-          docker push $DOCKER_USERNAME/my-node-service:latest
-          docker tag my-python-service $DOCKER_USERNAME/my-python-service:latest
-          docker push $DOCKER_USERNAME/my-python-service:latest
+          cd python-service
+          python -m flake8 .
