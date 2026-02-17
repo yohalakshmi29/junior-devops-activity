@@ -13,4 +13,4 @@ COPY . .
 EXPOSE 3000
 
 # Replace server.js with your Node.js entry file
-CMD ["node", "server.js"]
+CMD ["node", "index.js"]
